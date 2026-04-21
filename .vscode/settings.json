@@ -1,0 +1,6 @@
+{
+    "dotrush.roslyn.projectOrSolutionFiles": [
+        "/file-systems/data/Git-repos/Cloud-developer/MolnFordj/marketplace-app/src/marketplace-app/marketplace-app.csproj",
+        "/file-systems/data/Git-repos/Cloud-developer/MolnFordj/marketplace-app/tests/marketplace-app.Tests/marketplace-app.Tests.csproj"
+    ]
+}
