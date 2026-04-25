@@ -32,6 +32,20 @@ ASP.NET Core 10.0 MVC marketplace app. No solution file -- projects are standalo
 - **Clean Code / SOLID** -- service layer interfaces in `Services/`, entities in `Entities/`.
 - No emojis in code or commits unless explicitly requested.
 
+## Course Exercises Reference
+
+**IMPORTANT:** When developing this app, reference and implement the techniques described in the course exercises at:
+https://cloud-dev-25.educ8.se/exercises/
+
+Key exercise categories relevant to this project:
+- **Webapp Development** (`/exercises/10-webapp-development/`) -- presentation layer, service layer, data layer (repository pattern, MongoDB, CosmosDB, Blob Storage), authentication/authorization, Identity
+- **Deployment** (`/exercises/3-deployment/`) -- GitHub Actions CI/CD, Azure Key Vault, Azure Monitor
+- **Docker** (`/exercises/20-docker/`) -- containerization, Docker Compose
+- **Cloud Databases** (`/exercises/5-cloud-databases/`) -- CosmosDB, Blob Storage
+- **Code Collaboration** (`/exercises/15-code-collaboration/`) -- Git workflow, PRs, Jira integration
+
+More exercise pages will be added over time with additional techniques. Aim to implement a **majority** of the techniques across the finished app, but not necessarily all of them. Prioritize techniques that fit naturally with the current user story and architecture.
+
 ## Testing
 
 - Framework: xUnit 2.9.3 + Moq 4.20.72
