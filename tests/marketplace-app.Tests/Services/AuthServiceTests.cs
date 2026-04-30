@@ -9,8 +9,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Moq;
-using marketplace_app.Services;
-using marketplace_app.Entities;
+using Marketplace.Business;
+using Marketplace.Data;
 using Xunit;
 
 public class AuthServiceTests

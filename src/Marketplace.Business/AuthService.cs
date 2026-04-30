@@ -1,8 +1,8 @@
-namespace marketplace_app.Services;
-
-using Entities;
+using Marketplace.Data;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+
+namespace Marketplace.Business;
 
 public class AuthService : IAuthService
 {

@@ -1,6 +1,5 @@
-using marketplace_app.Data;
-using marketplace_app.Entities;
-using marketplace_app.Services;
+using Marketplace.Business;
+using Marketplace.Data;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +19,17 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
+
+// Seed roles
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var candidateRole = "Candidate";
+    if (!await roleManager.RoleExistsAsync(candidateRole))
+    {
+        await roleManager.CreateAsync(new IdentityRole(candidateRole));
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
@@ -41,6 +51,5 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

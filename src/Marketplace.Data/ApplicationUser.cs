@@ -1,4 +1,4 @@
-namespace marketplace_app.Entities;
+namespace Marketplace.Data;
 
 using Microsoft.AspNetCore.Identity;
 

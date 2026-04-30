@@ -18,7 +18,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\marketplace-app\marketplace-app.csproj" />
+    <ProjectReference Include="..\..\src\Marketplace.Business\Marketplace.Business.csproj" />
+    <ProjectReference Include="..\..\src\Marketplace.Data\Marketplace.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

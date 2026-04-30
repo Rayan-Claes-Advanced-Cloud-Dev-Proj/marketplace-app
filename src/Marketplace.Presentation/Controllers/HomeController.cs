@@ -1,9 +1,9 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using marketplace_app.Models;
+using Marketplace.Presentation.Models;
 
-namespace marketplace_app.Controllers;
+namespace Marketplace.Presentation.Controllers;
 
 public class HomeController : Controller
 {

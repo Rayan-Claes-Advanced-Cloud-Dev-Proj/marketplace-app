@@ -1,6 +1,5 @@
-namespace marketplace_app.Data;
+namespace Marketplace.Data;
 
-using Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 

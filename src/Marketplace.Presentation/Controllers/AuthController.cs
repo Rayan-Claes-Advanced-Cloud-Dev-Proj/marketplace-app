@@ -1,8 +1,8 @@
+using Marketplace.Business;
+using Marketplace.Presentation.Models;
 using Microsoft.AspNetCore.Mvc;
-using marketplace_app.Models;
-using marketplace_app.Services;
 
-namespace marketplace_app.Controllers;
+namespace Marketplace.Presentation.Controllers;
 
 public class AuthController : Controller
 {

@@ -1,4 +1,4 @@
-namespace marketplace_app.Models;
+namespace Marketplace.Presentation.Models;
 
 public class RegisterViewModel
 {

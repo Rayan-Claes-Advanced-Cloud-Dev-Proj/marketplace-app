@@ -1,4 +1,4 @@
-namespace marketplace_app.Services;
+namespace Marketplace.Business;
 
 public record AuthResult(bool Succeeded, IEnumerable<string> Errors);
 

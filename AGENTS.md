@@ -1,16 +1,18 @@
 # marketplace-app
 
-ASP.NET Core 10.0 MVC marketplace app. No solution file -- projects are standalone.
+ASP.NET Core 10.0 MVC marketplace app. Layered architecture with solution file.
 
 ## Project structure
 
-- `src/marketplace-app/` -- main web app (entrypoint: `Program.cs`)
-- `tests/marketplace-app.Tests/` -- xUnit test project
-- No `.sln` file exists. Reference projects directly by path.
+- `Marketplace.sln` -- solution file (standard `.sln` format)
+- `src/Marketplace.Data/` -- data layer: `ApplicationUser`, `ApplicationDbContext`, EF Core Identity stores
+- `src/Marketplace.Business/` -- business layer: `IAuthService`, `AuthService`, `AuthResult`
+- `src/Marketplace.Presentation/` -- presentation layer: MVC app, controllers, views, `Program.cs` entrypoint
+- `tests/marketplace-app.Tests/` -- xUnit test project (references `Marketplace.Business` and `Marketplace.Data`)
 
 ## Commands
 
-- Build main project: `dotnet build src/marketplace-app/marketplace-app.csproj`
+- Build solution: `dotnet build Marketplace.sln`
 - Build tests: `dotnet build tests/marketplace-app.Tests/marketplace-app.Tests.csproj`
 - Run tests: `dotnet test tests/marketplace-app.Tests/marketplace-app.Tests.csproj`
 - Run single test: `dotnet test tests/marketplace-app.Tests/marketplace-app.Tests.csproj --filter "FullyQualifiedName=<test-name>"`
@@ -18,18 +20,18 @@ ASP.NET Core 10.0 MVC marketplace app. No solution file -- projects are standalo
 ## Current state (as of session 2026-04-23)
 
 - Branch: `feature/RCACDP-1-As-a-seller-I-want-to-register-and-log-in-so-that-I-can-list-items-for-sale`
-- `AuthService.cs` has 2 compilation errors on lines 19 and 21:
-  - Line 19: `GetUserNameAsync` requires a `user` argument, cannot be called without one. Use `IHttpContextAccessor` + `UserManager.GetUserIdAsync()` / `GetUserAsync()` instead.
-  - Line 21: `HttpContext.Current` does not exist in ASP.NET Core. Inject `IHttpContextAccessor` and use `_httpContextAccessor.HttpContext`.
-- Identity is not yet configured in `Program.cs` -- needs `AddIdentity<ApplicationUser, IdentityRole>`, `AddEntityFrameworkStores`, and `UseAuthentication`/`UseAuthorization` middleware.
-- The `Microsoft.AspNetCore.Identity` (v2.3.9) package is stale and unnecessary on .NET 10 -- Identity is built-in. Consider removing it.
+- All 15 unit tests passing
+- Identity configured with "Candidate" role seeding in `Marketplace.Presentation/Program.cs`
+- `Microsoft.AspNetCore.Identity` (v2.3.9) package warning NU1510 persists — unnecessary on .NET 10, consider removing
+- Navigation bar in `_Layout.cshtml` still needs auth links (Register, Login, Logout)
 
 ## Conventions
 
 - **TDD first** -- write tests in `tests/` before implementation code.
 - **xUnit** with AAA pattern (Arrange-Act-Assert). Test project references Moq for mocking.
 - **ASP.NET Core Identity** for auth. New users get "Candidate" role by default.
-- **Clean Code / SOLID** -- service layer interfaces in `Services/`, entities in `Entities/`.
+- **Layered architecture** -- Data (entities, DbContext) → Business (services) → Presentation (MVC app)
+- **Clean Code / SOLID** -- service layer interfaces in `Marketplace.Business/`, entities in `Marketplace.Data/`.
 - No emojis in code or commits unless explicitly requested.
 
 ## Course Exercises Reference
