@@ -344,4 +344,243 @@ public class AuthServiceTests
         // Assert
         _signInManagerMock.Verify(s => s.SignOutAsync(), Times.Once);
     }
+
+    [Fact]
+    public async Task RegisterAsync_WithWhitespaceUsername_ReturnsFailureWithError()
+    {
+        // Arrange
+        var username = "   ";
+        var email = "test@example.com";
+        var password = "Password123!";
+
+        // Act
+        var result = await _authService.RegisterAsync(username, email, password);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        var errorList = result.Errors.ToList();
+        Assert.Single(errorList);
+        Assert.Contains("Username and password are required", errorList[0]);
+        _userManagerMock.Verify(u => u.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_WithWhitespacePassword_ReturnsFailureWithError()
+    {
+        // Arrange
+        var username = "testuser";
+        var email = "test@example.com";
+        var password = "   ";
+
+        // Act
+        var result = await _authService.RegisterAsync(username, email, password);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        var errorList = result.Errors.ToList();
+        Assert.Single(errorList);
+        Assert.Contains("Username and password are required", errorList[0]);
+        _userManagerMock.Verify(u => u.CreateAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_WithMultipleIdentityErrors_ReturnsAllErrors()
+    {
+        // Arrange
+        var username = "testuser";
+        var email = "test@example.com";
+        var password = "Password123!";
+
+        var errors = new[]
+        {
+            new IdentityErrorDescriber().PasswordTooShort(8),
+            new IdentityErrorDescriber().PasswordRequiresNonAlphanumeric(),
+        };
+        _userManagerMock.Setup(u => u.CreateAsync(It.IsAny<ApplicationUser>(), password))
+            .ReturnsAsync(IdentityResult.Failed(errors));
+
+        // Act
+        var result = await _authService.RegisterAsync(username, email, password);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        var errorList = result.Errors.ToList();
+        Assert.Equal(2, errorList.Count);
+        _userManagerMock.Verify(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithWhitespaceUsername_ReturnsFailureWithError()
+    {
+        // Arrange
+        var username = "   ";
+        var password = "Password123!";
+
+        // Act
+        var result = await _authService.LoginAsync(username, password);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        var errorList = result.Errors.ToList();
+        Assert.Single(errorList);
+        Assert.Contains("Username and password are required", errorList[0]);
+        _userManagerMock.Verify(u => u.FindByNameAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithWhitespacePassword_ReturnsFailureWithError()
+    {
+        // Arrange
+        var username = "testuser";
+        var password = "   ";
+
+        // Act
+        var result = await _authService.LoginAsync(username, password);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        var errorList = result.Errors.ToList();
+        Assert.Single(errorList);
+        Assert.Contains("Username and password are required", errorList[0]);
+    }
+
+    [Fact]
+    public async Task LoginAsync_WithTwoFactorEnabled_ReturnsFailureWithError()
+    {
+        // Arrange
+        var username = "testuser";
+        var password = "Password123!";
+        var user = new ApplicationUser { UserName = username, Email = "test@example.com" };
+
+        _userManagerMock.Setup(u => u.FindByNameAsync(username))
+            .ReturnsAsync(user);
+        _signInManagerMock.Setup(s => s.PasswordSignInAsync(user, password, false, false))
+            .ReturnsAsync(SignInResult.TwoFactorRequired);
+
+        // Act
+        var result = await _authService.LoginAsync(username, password);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        var errorList = result.Errors.ToList();
+        Assert.Single(errorList);
+        Assert.Contains("Invalid username or password", errorList[0]);
+    }
+
+    [Fact]
+    public void CurrentUsername_ReturnsUsername_WhenUserIsAuthenticated()
+    {
+        // Arrange is in constructor with ClaimTypes.Name = "testuser"
+
+        // Act & Assert
+        Assert.Equal("testuser", _authService.CurrentUsername);
+    }
+
+    [Fact]
+    public void CurrentUsername_ReturnsNull_WhenHttpContextIsNull()
+    {
+        // Arrange
+        var userStore = new Mock<IUserStore<ApplicationUser>>();
+        var userManager = new Mock<UserManager<ApplicationUser>>(userStore.Object, null, null, null, null, null, null, null, null);
+
+        var httpContextAccessor = new Mock<IHttpContextAccessor>();
+        httpContextAccessor.Setup(h => h.HttpContext).Returns((HttpContext?)null);
+
+        var claimsFactory = new Mock<IUserClaimsPrincipalFactory<ApplicationUser>>();
+        var identityOptions = Options.Create(new IdentityOptions());
+        var logger = new Mock<ILogger<SignInManager<ApplicationUser>>>();
+        var schemes = new Mock<IAuthenticationSchemeProvider>();
+        var confirmation = new Mock<IUserConfirmation<ApplicationUser>>();
+        var signInManager = new Mock<SignInManager<ApplicationUser>>(
+            userManager.Object,
+            httpContextAccessor.Object,
+            claimsFactory.Object,
+            identityOptions,
+            logger.Object,
+            schemes.Object,
+            confirmation.Object);
+
+        var service = new AuthService(userManager.Object, signInManager.Object, httpContextAccessor.Object);
+
+        // Act & Assert
+        Assert.Null(service.CurrentUsername);
+    }
+
+    [Fact]
+    public void IsAuthenticated_ReturnsTrue_WhenUserIsAuthenticated()
+    {
+        // Arrange is in constructor with authenticated ClaimsIdentity
+
+        // Act & Assert
+        Assert.True(_authService.IsAuthenticated);
+    }
+
+    [Fact]
+    public void IsAuthenticated_ReturnsFalse_WhenHttpContextIsNull()
+    {
+        // Arrange
+        var userStore = new Mock<IUserStore<ApplicationUser>>();
+        var userManager = new Mock<UserManager<ApplicationUser>>(userStore.Object, null, null, null, null, null, null, null, null);
+
+        var httpContextAccessor = new Mock<IHttpContextAccessor>();
+        httpContextAccessor.Setup(h => h.HttpContext).Returns((HttpContext?)null);
+
+        var claimsFactory = new Mock<IUserClaimsPrincipalFactory<ApplicationUser>>();
+        var identityOptions = Options.Create(new IdentityOptions());
+        var logger = new Mock<ILogger<SignInManager<ApplicationUser>>>();
+        var schemes = new Mock<IAuthenticationSchemeProvider>();
+        var confirmation = new Mock<IUserConfirmation<ApplicationUser>>();
+        var signInManager = new Mock<SignInManager<ApplicationUser>>(
+            userManager.Object,
+            httpContextAccessor.Object,
+            claimsFactory.Object,
+            identityOptions,
+            logger.Object,
+            schemes.Object,
+            confirmation.Object);
+
+        var service = new AuthService(userManager.Object, signInManager.Object, httpContextAccessor.Object);
+
+        // Act & Assert
+        Assert.False(service.IsAuthenticated);
+    }
+
+    [Fact]
+    public void IsAuthenticated_ReturnsFalse_WhenUserIsNotAuthenticated()
+    {
+        // Arrange
+        var userStore = new Mock<IUserStore<ApplicationUser>>();
+        var userManager = new Mock<UserManager<ApplicationUser>>(userStore.Object, null, null, null, null, null, null, null, null);
+
+        var context = new Mock<HttpContext>();
+        var responseMock = new Mock<HttpResponse>();
+        var requestMock = new Mock<HttpRequest>();
+        context.Setup(c => c.Response).Returns(responseMock.Object);
+        context.Setup(c => c.Request).Returns(requestMock.Object);
+
+        var anonymousIdentity = new ClaimsIdentity();
+        context.Setup(c => c.User).Returns(new ClaimsPrincipal(anonymousIdentity));
+
+        var httpContextAccessor = new Mock<IHttpContextAccessor>();
+        httpContextAccessor.Setup(h => h.HttpContext).Returns(context.Object);
+
+        var claimsFactory = new Mock<IUserClaimsPrincipalFactory<ApplicationUser>>();
+        var identityOptions = Options.Create(new IdentityOptions());
+        var logger = new Mock<ILogger<SignInManager<ApplicationUser>>>();
+        var schemes = new Mock<IAuthenticationSchemeProvider>();
+        var confirmation = new Mock<IUserConfirmation<ApplicationUser>>();
+        var signInManager = new Mock<SignInManager<ApplicationUser>>(
+            userManager.Object,
+            httpContextAccessor.Object,
+            claimsFactory.Object,
+            identityOptions,
+            logger.Object,
+            schemes.Object,
+            confirmation.Object);
+
+        var service = new AuthService(userManager.Object, signInManager.Object, httpContextAccessor.Object);
+
+        // Act & Assert
+        Assert.False(service.IsAuthenticated);
+    }
 }
