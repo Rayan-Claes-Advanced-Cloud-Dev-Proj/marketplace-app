@@ -13,6 +13,7 @@ ASP.NET Core 10.0 MVC marketplace app. Layered architecture with solution file.
 ## Commands
 
 - Build solution: `dotnet build Marketplace.sln`
+- Run app: `dotnet run --project src/Marketplace.Presentation/Marketplace.Presentation.csproj`
 - Build tests: `dotnet build tests/marketplace-app.Tests/marketplace-app.Tests.csproj`
 - Run tests: `dotnet test tests/marketplace-app.Tests/marketplace-app.Tests.csproj`
 - Run single test: `dotnet test tests/marketplace-app.Tests/marketplace-app.Tests.csproj --filter "FullyQualifiedName=<test-name>"`
