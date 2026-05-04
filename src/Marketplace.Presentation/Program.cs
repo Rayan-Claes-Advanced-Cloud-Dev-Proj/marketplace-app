@@ -1,5 +1,6 @@
 using Marketplace.Business;
 using Marketplace.Data;
+using Marketplace.Presentation.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,6 +20,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseInMemoryDatabase("MarketplaceDb"));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailSender<ApplicationUser>, SendGridEmailSender>();
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();

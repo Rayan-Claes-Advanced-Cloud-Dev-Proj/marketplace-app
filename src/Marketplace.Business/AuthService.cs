@@ -9,15 +9,18 @@ public class AuthService : IAuthService
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly SignInManager<ApplicationUser> _signInManager;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IEmailSender<ApplicationUser> _emailSender;
 
     public AuthService(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
-        IHttpContextAccessor httpContextAccessor)
+        IHttpContextAccessor httpContextAccessor,
+        IEmailSender<ApplicationUser> emailSender)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _httpContextAccessor = httpContextAccessor;
+        _emailSender = emailSender;
     }
 
     public string? CurrentUsername => _httpContextAccessor.HttpContext?.User?.Identity?.Name;
@@ -45,6 +48,9 @@ public class AuthService : IAuthService
         }
 
         await _userManager.AddToRoleAsync(user, "Candidate");
+
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        await _emailSender.SendConfirmationLinkAsync(user, user.Email!, token);
 
         return new AuthResult(true, [], user.Id);
     }

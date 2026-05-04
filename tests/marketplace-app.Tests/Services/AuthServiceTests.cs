@@ -11,7 +11,6 @@ using Microsoft.Extensions.Options;
 using Moq;
 using Marketplace.Business;
 using Marketplace.Data;
-using Xunit;
 
 public class AuthServiceTests
 {
@@ -19,6 +18,7 @@ public class AuthServiceTests
     private readonly Mock<SignInManager<ApplicationUser>> _signInManagerMock;
     private readonly Mock<HttpContext> _contextMock;
     private readonly Mock<IHttpContextAccessor> _httpContextAccessorMock;
+    private readonly Mock<IEmailSender<ApplicationUser>> _emailSenderMock;
     private readonly AuthService _authService;
 
     public AuthServiceTests()
@@ -56,7 +56,13 @@ public class AuthServiceTests
             schemes.Object,
             confirmation.Object);
 
-        _authService = new AuthService(_userManagerMock.Object, _signInManagerMock.Object, _httpContextAccessorMock.Object);
+        _emailSenderMock = new Mock<IEmailSender<ApplicationUser>>();
+
+        _authService = new AuthService(
+            _userManagerMock.Object,
+            _signInManagerMock.Object,
+            _httpContextAccessorMock.Object,
+            _emailSenderMock.Object);
     }
 
     [Fact]
@@ -71,6 +77,8 @@ public class AuthServiceTests
             .ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Candidate"))
             .ReturnsAsync(IdentityResult.Success);
+        _userManagerMock.Setup(u => u.GenerateEmailConfirmationTokenAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync("test_token");
 
         // Act
         var result = await _authService.RegisterAsync(username, email, password);
@@ -82,6 +90,12 @@ public class AuthServiceTests
             It.Is<ApplicationUser>(u => u.UserName == username && u.Email == email),
             password), Times.Once);
         _userManagerMock.Verify(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Candidate"), Times.Once);
+        _emailSenderMock.Verify(
+            e => e.SendConfirmationLinkAsync(
+                It.Is<ApplicationUser>(u => u.UserName == username && u.Email == email),
+                email,
+                It.IsAny<string>()),
+            Times.Once);
     }
 
     [Fact]
@@ -196,6 +210,8 @@ public class AuthServiceTests
             .ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Candidate"))
             .ReturnsAsync(IdentityResult.Success);
+        _userManagerMock.Setup(u => u.GenerateEmailConfirmationTokenAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync("test_token");
 
         // Act
         await _authService.RegisterAsync(username, email, password);
@@ -495,7 +511,8 @@ public class AuthServiceTests
             schemes.Object,
             confirmation.Object);
 
-        var service = new AuthService(userManager.Object, signInManager.Object, httpContextAccessor.Object);
+        var emailSender = new Mock<IEmailSender<ApplicationUser>>();
+        var service = new AuthService(userManager.Object, signInManager.Object, httpContextAccessor.Object, emailSender.Object);
 
         // Act & Assert
         Assert.Null(service.CurrentUsername);
@@ -534,7 +551,8 @@ public class AuthServiceTests
             schemes.Object,
             confirmation.Object);
 
-        var service = new AuthService(userManager.Object, signInManager.Object, httpContextAccessor.Object);
+        var emailSender = new Mock<IEmailSender<ApplicationUser>>();
+        var service = new AuthService(userManager.Object, signInManager.Object, httpContextAccessor.Object, emailSender.Object);
 
         // Act & Assert
         Assert.False(service.IsAuthenticated);
@@ -573,7 +591,8 @@ public class AuthServiceTests
             schemes.Object,
             confirmation.Object);
 
-        var service = new AuthService(userManager.Object, signInManager.Object, httpContextAccessor.Object);
+        var emailSender = new Mock<IEmailSender<ApplicationUser>>();
+        var service = new AuthService(userManager.Object, signInManager.Object, httpContextAccessor.Object, emailSender.Object);
 
         // Act & Assert
         Assert.False(service.IsAuthenticated);
@@ -638,6 +657,8 @@ public class AuthServiceTests
             });
         _userManagerMock.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Candidate"))
             .ReturnsAsync(IdentityResult.Success);
+        _userManagerMock.Setup(u => u.GenerateEmailConfirmationTokenAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync("test_token");
 
         // Act
         var result = await _authService.RegisterAsync(username, email, password);
@@ -664,6 +685,8 @@ public class AuthServiceTests
             });
         _userManagerMock.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Candidate"))
             .ReturnsAsync(IdentityResult.Success);
+        _userManagerMock.Setup(u => u.GenerateEmailConfirmationTokenAsync(It.IsAny<ApplicationUser>()))
+            .ReturnsAsync("test_token");
 
         // Act
         var result = await _authService.RegisterAsync(username, email, password);
