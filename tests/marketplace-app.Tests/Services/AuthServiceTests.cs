@@ -185,28 +185,23 @@ public class AuthServiceTests
     }
 
     [Fact]
-    public async Task RegisterAsync_OnSuccess_SignsInUser()
+    public async Task RegisterAsync_OnSuccess_DoesNotSignInUser()
     {
         // Arrange
         var username = "testuser";
         var email = "test@example.com";
         var password = "Password123!";
-        ApplicationUser? signedInUser = null;
 
         _userManagerMock.Setup(u => u.CreateAsync(It.IsAny<ApplicationUser>(), password))
             .ReturnsAsync(IdentityResult.Success);
         _userManagerMock.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Candidate"))
             .ReturnsAsync(IdentityResult.Success);
-        _signInManagerMock.Setup(s => s.SignInAsync(It.IsAny<ApplicationUser>(), It.IsAny<bool>(), It.IsAny<string>()))
-            .Callback<ApplicationUser, bool, string>((user, persistent, method) => { signedInUser = user; })
-            .Returns(Task.CompletedTask);
 
         // Act
         await _authService.RegisterAsync(username, email, password);
 
-        // Assert
-        Assert.NotNull(signedInUser);
-        _signInManagerMock.Verify(s => s.SignInAsync(It.IsAny<ApplicationUser>(), false), Times.Once);
+        // Assert - user should NOT be signed in until email is confirmed
+        _signInManagerMock.Verify(s => s.SignInAsync(It.IsAny<ApplicationUser>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never);
     }
 
     [Fact]
@@ -215,7 +210,7 @@ public class AuthServiceTests
         // Arrange
         var username = "testuser";
         var password = "Password123!";
-        var user = new ApplicationUser { UserName = username, Email = "test@example.com" };
+        var user = new ApplicationUser { UserName = username, Email = "test@example.com", EmailConfirmed = true };
 
         _userManagerMock.Setup(u => u.FindByNameAsync(username))
             .ReturnsAsync(user);
@@ -256,7 +251,7 @@ public class AuthServiceTests
         // Arrange
         var username = "testuser";
         var password = "WrongPassword";
-        var user = new ApplicationUser { UserName = username, Email = "test@example.com" };
+        var user = new ApplicationUser { UserName = username, Email = "test@example.com", EmailConfirmed = true };
 
         _userManagerMock.Setup(u => u.FindByNameAsync(username))
             .ReturnsAsync(user);
@@ -314,7 +309,7 @@ public class AuthServiceTests
         // Arrange
         var username = "testuser";
         var password = "Password123!";
-        var user = new ApplicationUser { UserName = username, Email = "test@example.com" };
+        var user = new ApplicationUser { UserName = username, Email = "test@example.com", EmailConfirmed = true };
 
         _userManagerMock.Setup(u => u.FindByNameAsync(username))
             .ReturnsAsync(user);
@@ -450,7 +445,7 @@ public class AuthServiceTests
         // Arrange
         var username = "testuser";
         var password = "Password123!";
-        var user = new ApplicationUser { UserName = username, Email = "test@example.com" };
+        var user = new ApplicationUser { UserName = username, Email = "test@example.com", EmailConfirmed = true };
 
         _userManagerMock.Setup(u => u.FindByNameAsync(username))
             .ReturnsAsync(user);
@@ -582,5 +577,119 @@ public class AuthServiceTests
 
         // Act & Assert
         Assert.False(service.IsAuthenticated);
+    }
+
+    [Fact]
+    public async Task ConfirmEmailAsync_WithValidToken_ConfirmsEmail()
+    {
+        // Arrange
+        var userId = "user123";
+        var token = "validtoken";
+        var user = new ApplicationUser { Id = userId, UserName = "testuser", Email = "test@example.com" };
+
+        _userManagerMock.Setup(u => u.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+        _userManagerMock.Setup(u => u.ConfirmEmailAsync(user, token))
+            .ReturnsAsync(IdentityResult.Success);
+
+        // Act
+        var result = await _authService.ConfirmEmailAsync(userId, token);
+
+        // Assert
+        Assert.True(result.Succeeded);
+        Assert.Empty(result.Errors);
+    }
+
+    [Fact]
+    public async Task ConfirmEmailAsync_WithInvalidToken_ReturnsError()
+    {
+        // Arrange
+        var userId = "user123";
+        var token = "badtoken";
+        var user = new ApplicationUser { Id = userId, UserName = "testuser", Email = "test@example.com" };
+
+        _userManagerMock.Setup(u => u.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+        _userManagerMock.Setup(u => u.ConfirmEmailAsync(user, token))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Description = "Invalid token" }));
+
+        // Act
+        var result = await _authService.ConfirmEmailAsync(userId, token);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, e => e.Contains("Invalid token"));
+    }
+
+    [Fact]
+    public async Task RegisterAsync_ReturnsUserIdInResult()
+    {
+        // Arrange
+        var username = "testuser";
+        var email = "test@example.com";
+        var password = "Password123!";
+        var expectedId = "abc123";
+
+        _userManagerMock.Setup(u => u.CreateAsync(It.IsAny<ApplicationUser>(), password))
+            .ReturnsAsync((ApplicationUser user, string pwd) =>
+            {
+                user.Id = expectedId;
+                return IdentityResult.Success;
+            });
+        _userManagerMock.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Candidate"))
+            .ReturnsAsync(IdentityResult.Success);
+
+        // Act
+        var result = await _authService.RegisterAsync(username, email, password);
+
+        // Assert
+        Assert.True(result.Succeeded);
+        Assert.Equal(expectedId, result.UserId);
+    }
+
+    [Fact]
+    public async Task RegisterAsync_CreatesUserWithEmailNotConfirmed()
+    {
+        // Arrange
+        var username = "testuser";
+        var email = "test@example.com";
+        var password = "Password123!";
+        ApplicationUser? createdUser = null;
+
+        _userManagerMock.Setup(u => u.CreateAsync(It.IsAny<ApplicationUser>(), password))
+            .ReturnsAsync((ApplicationUser user, string pwd) =>
+            {
+                createdUser = user;
+                return IdentityResult.Success;
+            });
+        _userManagerMock.Setup(u => u.AddToRoleAsync(It.IsAny<ApplicationUser>(), "Candidate"))
+            .ReturnsAsync(IdentityResult.Success);
+
+        // Act
+        var result = await _authService.RegisterAsync(username, email, password);
+
+        // Assert
+        Assert.True(result.Succeeded);
+        Assert.NotNull(createdUser);
+        Assert.False(createdUser.EmailConfirmed);
+    }
+
+    [Fact]
+    public async Task LoginAsync_RejectsUserWithUnconfirmedEmail()
+    {
+        // Arrange
+        var username = "testuser";
+        var password = "Password123!";
+        var user = new ApplicationUser { UserName = username, Email = "test@example.com", EmailConfirmed = false };
+
+        _userManagerMock.Setup(u => u.FindByNameAsync(username))
+            .ReturnsAsync(user);
+
+        // Act
+        var result = await _authService.LoginAsync(username, password);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, e => e.Contains("confirm"));
     }
 }

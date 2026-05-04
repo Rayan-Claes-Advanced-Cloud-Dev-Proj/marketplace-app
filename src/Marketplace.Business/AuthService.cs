@@ -35,7 +35,7 @@ public class AuthService : IAuthService
         {
             UserName = username,
             Email = email,
-            EmailConfirmed = true,
+            EmailConfirmed = false,
         };
 
         var result = await _userManager.CreateAsync(user, password);
@@ -45,9 +45,8 @@ public class AuthService : IAuthService
         }
 
         await _userManager.AddToRoleAsync(user, "Candidate");
-        await _signInManager.SignInAsync(user, isPersistent: false);
 
-        return new AuthResult(true, []);
+        return new AuthResult(true, [], user.Id);
     }
 
     public async Task<AuthResult> LoginAsync(string username, string password)
@@ -61,6 +60,11 @@ public class AuthService : IAuthService
         if (user is null)
         {
             return new AuthResult(false, ["Invalid username or password."]);
+        }
+
+        if (!user.EmailConfirmed)
+        {
+            return new AuthResult(false, ["Please confirm your email before logging in."]);
         }
 
         var result = await _signInManager.PasswordSignInAsync(user, password, isPersistent: false, lockoutOnFailure: false);
@@ -80,5 +84,33 @@ public class AuthService : IAuthService
     public async Task LogoutAsync()
     {
         await _signInManager.SignOutAsync();
+    }
+
+    public async Task<AuthResult> ConfirmEmailAsync(string userId, string token)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            return new AuthResult(false, ["User not found."]);
+        }
+
+        var result = await _userManager.ConfirmEmailAsync(user, token);
+        if (!result.Succeeded)
+        {
+            return new AuthResult(false, result.Errors.Select(e => e.Description));
+        }
+
+        return new AuthResult(true, []);
+    }
+
+    public async Task<string> GenerateEmailConfirmationTokenAsync(string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user is null)
+        {
+            throw new ArgumentException("User not found.");
+        }
+
+        return await _userManager.GenerateEmailConfirmationTokenAsync(user);
     }
 }

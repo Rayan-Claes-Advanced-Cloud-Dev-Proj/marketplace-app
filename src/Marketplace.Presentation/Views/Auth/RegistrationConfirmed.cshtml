@@ -1,0 +1,16 @@
+@model Marketplace.Presentation.Models.ConfirmEmailViewModel
+
+<h2>Registration Successful</h2>
+
+<p>Your account has been created. Please confirm your email to log in.</p>
+
+<div class="alert">
+    <p><strong>Confirmation Token:</strong></p>
+    <code>@Model.Token</code>
+</div>
+
+<form asp-action="ConfirmEmail" method="post">
+    <input type="hidden" name="UserId" value="@Model.UserId" />
+    <input type="hidden" name="Token" value="@Model.Token" />
+    <button type="submit" class="btn">Confirm Email Now</button>
+</form>
