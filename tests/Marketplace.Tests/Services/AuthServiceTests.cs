@@ -715,4 +715,114 @@ public class AuthServiceTests
         Assert.False(result.Succeeded);
         Assert.Contains(result.Errors, e => e.Contains("confirm"));
     }
+
+    [Fact]
+    public async Task ConfirmEmailAsync_WithNonExistentUserId_ReturnsFailureWithError()
+    {
+        // Arrange
+        var userId = "nonexistent";
+        var token = "validtoken";
+
+        _userManagerMock.Setup(u => u.FindByIdAsync(userId))
+            .ReturnsAsync((ApplicationUser?)null);
+
+        // Act
+        var result = await _authService.ConfirmEmailAsync(userId, token);
+
+        // Assert
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, e => e.Contains("not found"));
+    }
+
+    [Fact]
+    public async Task GenerateEmailConfirmationTokenAsync_WithValidUserId_ReturnsToken()
+    {
+        // Arrange
+        var userId = "user123";
+        var expectedToken = "generated_token";
+        var user = new ApplicationUser { Id = userId, UserName = "testuser", Email = "test@example.com" };
+
+        _userManagerMock.Setup(u => u.FindByIdAsync(userId))
+            .ReturnsAsync(user);
+        _userManagerMock.Setup(u => u.GenerateEmailConfirmationTokenAsync(user))
+            .ReturnsAsync(expectedToken);
+
+        // Act
+        var token = await _authService.GenerateEmailConfirmationTokenAsync(userId);
+
+        // Assert
+        Assert.Equal(expectedToken, token);
+    }
+
+    [Fact]
+    public async Task GenerateEmailConfirmationTokenAsync_WithNonExistentUserId_ThrowsArgumentException()
+    {
+        // Arrange
+        var userId = "nonexistent";
+        var token = "validtoken";
+
+        _userManagerMock.Setup(u => u.FindByIdAsync(userId))
+            .ReturnsAsync((ApplicationUser?)null);
+
+        // Act & Assert
+        await Assert.ThrowsAsync<ArgumentException>(() => _authService.GenerateEmailConfirmationTokenAsync(userId));
+    }
+
+    [Fact]
+    public void CurrentUsername_ReturnsNull_WhenUserIsNull()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        httpContext.User = null!;
+        _httpContextAccessorMock.Setup(h => h.HttpContext).Returns(httpContext);
+
+        var authService = new AuthService(_userManagerMock.Object, _signInManagerMock.Object, _httpContextAccessorMock.Object, _emailSenderMock.Object);
+
+        // Act & Assert
+        Assert.Null(authService.CurrentUsername);
+    }
+
+    [Fact]
+    public void CurrentUsername_ReturnsNull_WhenIdentityNameIsNull()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        var identity = new ClaimsIdentity(new[] { new Claim(ClaimTypes.Email, "test@example.com") }, "cookie");
+        httpContext.User = new ClaimsPrincipal(identity);
+        _httpContextAccessorMock.Setup(h => h.HttpContext).Returns(httpContext);
+
+        var authService = new AuthService(_userManagerMock.Object, _signInManagerMock.Object, _httpContextAccessorMock.Object, _emailSenderMock.Object);
+
+        // Act & Assert
+        Assert.Null(authService.CurrentUsername);
+    }
+
+    [Fact]
+    public void IsAuthenticated_ReturnsFalse_WhenUserIsNull()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        httpContext.User = null!;
+        _httpContextAccessorMock.Setup(h => h.HttpContext).Returns(httpContext);
+
+        var authService = new AuthService(_userManagerMock.Object, _signInManagerMock.Object, _httpContextAccessorMock.Object, _emailSenderMock.Object);
+
+        // Act & Assert
+        Assert.False(authService.IsAuthenticated);
+    }
+
+    [Fact]
+    public void IsAuthenticated_ReturnsFalse_WhenIdentityNotAuthenticated()
+    {
+        // Arrange
+        var httpContext = new DefaultHttpContext();
+        var identity = new ClaimsIdentity();
+        httpContext.User = new ClaimsPrincipal(identity);
+        _httpContextAccessorMock.Setup(h => h.HttpContext).Returns(httpContext);
+
+        var authService = new AuthService(_userManagerMock.Object, _signInManagerMock.Object, _httpContextAccessorMock.Object, _emailSenderMock.Object);
+
+        // Act & Assert
+        Assert.False(authService.IsAuthenticated);
+    }
 }
