@@ -1,4 +1,4 @@
-namespace marketplace_app.Tests.Services;
+namespace Marketplace.Tests.Services;
 
 using System.Security.Claims;
 using System.Linq;
