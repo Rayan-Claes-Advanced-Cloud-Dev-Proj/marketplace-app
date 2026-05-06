@@ -8,23 +8,26 @@ ASP.NET Core 10.0 MVC marketplace app. Layered architecture with solution file.
 - `src/Marketplace.Data/` -- data layer: `ApplicationUser`, `ApplicationDbContext`, EF Core Identity stores
 - `src/Marketplace.Business/` -- business layer: `IAuthService`, `AuthService`, `AuthResult`
 - `src/Marketplace.Presentation/` -- presentation layer: MVC app, controllers, views, `Program.cs` entrypoint
-- `tests/marketplace-app.Tests/` -- xUnit test project (references `Marketplace.Business` and `Marketplace.Data`)
+- `tests/Marketplace.Tests/` -- xUnit test project (references `Marketplace.Business` and `Marketplace.Data`)
 
 ## Commands
 
 - Build solution: `dotnet build Marketplace.sln`
 - Run app: `dotnet run --project src/Marketplace.Presentation/Marketplace.Presentation.csproj`
-- Build tests: `dotnet build tests/marketplace-app.Tests/marketplace-app.Tests.csproj`
-- Run tests: `dotnet test tests/marketplace-app.Tests/marketplace-app.Tests.csproj`
-- Run single test: `dotnet test tests/marketplace-app.Tests/marketplace-app.Tests.csproj --filter "FullyQualifiedName=<test-name>"`
+- Build tests: `dotnet build tests/Marketplace.Tests/Marketplace.Tests.csproj`
+- Run tests: `dotnet test tests/Marketplace.Tests/Marketplace.Tests.csproj`
+- Run single test: `dotnet test tests/Marketplace.Tests/Marketplace.Tests.csproj --filter "FullyQualifiedName=<test-name>"`
+- Coverage report: `dotnet test tests/Marketplace.Tests/Marketplace.Tests.csproj --logger:"console;verbosity=detailed" /p:CollectCoverage=true /p:CoverletOutputFormat=opencover /p:CoverletOutput="TestResults/coverage.opencover.xml" && reportgenerator -reports:"tests/Marketplace.Tests/TestResults/coverage.opencover.xml" -targetDir:"tests/Marketplace.Tests/CoverageReport"`
 
-## Current state (as of session 2026-04-23)
+## Current state (as of session 2026-05-06)
 
 - Branch: `feature/RCACDP-1-As-a-seller-I-want-to-register-and-log-in-so-that-I-can-list-items-for-sale`
-- All 15 unit tests passing
-- Identity configured with "Candidate" role seeding in `Marketplace.Presentation/Program.cs`
+- All 37 unit tests passing
+- `AuthService` coverage: 100% line, 88.9% branch (11.1% untestable — `ClaimsPrincipal.Identity` is never null)
+- Identity configured with "Candidate" role seeding in `src/Marketplace.Presentation/Program.cs`
+- InMemory EF Core provider used for Identity store
 - `Microsoft.AspNetCore.Identity` (v2.3.9) package warning NU1510 persists — unnecessary on .NET 10, consider removing
-- Navigation bar in `_Layout.cshtml` still needs auth links (Register, Login, Logout)
+- `SendGrid` (v9.29.3) referenced in Presentation layer for email sending
 
 ## Conventions
 
@@ -51,8 +54,9 @@ More exercise pages will be added over time with additional techniques. Aim to i
 
 ## Testing
 
-- Framework: xUnit 2.9.3 + Moq 4.20.72
+- Framework: xUnit 2.9.3 + Moq 4.20.72 + coverlet 2.23.2 + ReportGenerator 5.5.9
 - Mock `UserManager<ApplicationUser>` and `SignInManager<ApplicationUser>` with Moq
 - `UserManager` requires `IUserStore<ApplicationUser>` mock in constructor
 - `SignInManager` requires `IHttpContextAccessor` mock, `IOptions<SignInManager<>>`, and `ILogger<SignInManager<>>` mocks
-- See `tests/marketplace-app.Tests/Services/AuthServiceTests.cs` for mock setup pattern
+- See `tests/Marketplace.Tests/Services/AuthServiceTests.cs` for mock setup pattern
+- Coverage output: `tests/Marketplace.Tests/TestResults/` (raw), `tests/Marketplace.Tests/CoverageReport/` (HTML report)
